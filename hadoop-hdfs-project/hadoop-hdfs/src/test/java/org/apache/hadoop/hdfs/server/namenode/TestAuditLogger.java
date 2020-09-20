@@ -21,6 +21,7 @@ package org.apache.hadoop.hdfs.server.namenode;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -89,6 +90,11 @@ public class TestAuditLogger {
   }
 
   private static final short TEST_PERMISSION = (short) 0654;
+  private static final String STR_AUDIT_CREATE_OVERRITE =
+      "create (options=[CREATE, OVERWRITE])";
+  private static final String STR_AUDIT_CREATE_NOOVERRITE =
+      "create (options=[CREATE])";
+  private static final String STR_AUDIT_APPEND = "append (options=[APPEND])";
 
   @Before
   public void setup() {
@@ -226,6 +232,43 @@ public class TestAuditLogger {
       fs.setPermission(p, new FsPermission(TEST_PERMISSION));
       assertEquals(TEST_PERMISSION, DummyAuditLogger.foundPermission);
       assertEquals(2, DummyAuditLogger.logCount);
+    } finally {
+      cluster.shutdown();
+    }
+  }
+
+  @Test
+  public void testAuditLoggerWithCreateFlag() throws IOException {
+    final Configuration conf = new HdfsConfiguration();
+    final MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).build();
+    LogCapturer auditlog = LogCapturer.captureLogs(FSNamesystem.auditLog);
+    try {
+      cluster.waitClusterUp();
+      auditlog.clearOutput();
+      final FileSystem fs = cluster.getFileSystem();
+      final Path p = new Path("/debug.log");
+      // create with no overrite
+      FSDataOutputStream stm = fs.create(p, false);
+      assertTrue(auditlog.getOutput().contains(STR_AUDIT_CREATE_NOOVERRITE));
+      auditlog.clearOutput();
+      stm.close();
+
+      //create with overrite
+      stm = fs.create(p, true);
+      assertTrue(auditlog.getOutput().contains(STR_AUDIT_CREATE_OVERRITE));
+      auditlog.clearOutput();
+      stm.close();
+
+      // create with default
+      stm = fs.create(p);
+      assertTrue(auditlog.getOutput().contains(STR_AUDIT_CREATE_OVERRITE));
+      auditlog.clearOutput();
+      stm.close();
+
+      stm = fs.append(p);
+      assertTrue(auditlog.getOutput().contains(STR_AUDIT_APPEND));
+      stm.close();
+      auditlog.clearOutput();
     } finally {
       cluster.shutdown();
     }

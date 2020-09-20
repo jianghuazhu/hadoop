@@ -2639,10 +2639,10 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
           createParent, replication, blockSize, supportedVersions, ecPolicyName,
           storagePolicy, logRetryCache);
     } catch (AccessControlException e) {
-      logAuditEvent(false, "create", src);
+      logAuditEvent(false, "create (options=" + flag + ")", src);
       throw e;
     }
-    logAuditEvent(true, "create", src, status);
+    logAuditEvent(true, "create (options=" + flag + ")", src, status);
     return status;
   }
 
@@ -2942,10 +2942,10 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
           getEditLog().logSync();
         }
       }
-      logAuditEvent(true, operationName, srcArg);
+      logAuditEvent(true, operationName + " (options=" + flag + ")", srcArg);
       return lbs;
     } catch (AccessControlException e) {
-      logAuditEvent(false, operationName, srcArg);
+      logAuditEvent(false, operationName + " (options=" + flag + ")", srcArg);
       throw e;
     }
   }
