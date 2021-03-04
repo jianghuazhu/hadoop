@@ -143,7 +143,7 @@ public class TestEnabledECPolicies {
         testPolicy);
     manager.init(conf);
     // Load policies similar to when fsimage is loaded at namenode startup
-    manager.loadPolicies(constructAllDisabledInitialPolicies(), conf);
+    manager.loadPolicies(constructAllDisabledInitialPolicies(), conf, null);
 
     ErasureCodingPolicyInfo[] getPoliciesResult = manager.getPolicies();
     boolean isEnabled = isPolicyEnabled(testPolicy, getPoliciesResult);
@@ -183,7 +183,7 @@ public class TestEnabledECPolicies {
         DFSConfigKeys.DFS_NAMENODE_EC_SYSTEM_DEFAULT_POLICY, emptyPolicy);
     manager.init(conf);
     // Load policies similar to when fsimage is loaded at namenode startup
-    manager.loadPolicies(constructAllDisabledInitialPolicies(), conf);
+    manager.loadPolicies(constructAllDisabledInitialPolicies(), conf, null);
     // All the policies are disabled if the default policy is empty
     getPoliciesResult = manager.getPolicies();
     assertAllPoliciesAreDisabled(getPoliciesResult);
