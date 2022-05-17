@@ -60,6 +60,7 @@ import org.apache.hadoop.hdfs.DFSTestUtil;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.hdfs.MiniDFSNNTopology;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
@@ -70,12 +71,15 @@ import org.apache.hadoop.hdfs.protocol.LocatedStripedBlock;
 import org.apache.hadoop.hdfs.protocol.SystemErasureCodingPolicies;
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockManager;
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockManagerTestUtil;
+import org.apache.hadoop.hdfs.server.blockmanagement.DatanodeDescriptor;
+import org.apache.hadoop.hdfs.server.blockmanagement.DatanodeManager;
 import org.apache.hadoop.hdfs.server.common.Storage;
 import org.apache.hadoop.hdfs.server.datanode.DataNode;
 import org.apache.hadoop.hdfs.server.datanode.StorageLocation;
 import org.apache.hadoop.hdfs.server.namenode.NameNode;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.ipc.RemoteException;
+import org.apache.hadoop.net.NetworkTopology;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.security.TestRefreshUserMappings;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -471,7 +475,7 @@ public class TestDFSAdmin {
     }, 100, 100 * 100);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 120000)
   public void testPrintTopology() throws Exception {
     redirectStream();
 
@@ -517,6 +521,53 @@ public class TestDFSAdmin {
           is(allOf(containsString("Rack:"), containsString("/d2/r1"))));
       assertThat(outs.get(9),
           is(allOf(containsString("Rack:"), containsString("/d2/r2"))));
+    }
+  }
+
+  @Test(timeout = 120000)
+  public void testPrintTopologyWithState() throws Exception {
+    redirectStream();
+    final Configuration dfsConf = new HdfsConfiguration();
+    final File baseDir = new File(
+            PathUtils.getTestDir(getClass()),
+            GenericTestUtils.getMethodName());
+    dfsConf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, baseDir.getAbsolutePath());
+
+    final int numDn = 4;
+    final String[] racks = {
+            "/d1/r1", "/d1/r2",
+            "/d2/r1", "/d2/r2"};
+
+    try (MiniDFSCluster miniCluster = new MiniDFSCluster.Builder(dfsConf)
+            .numDataNodes(numDn).racks(racks).build()) {
+      miniCluster.waitActive();
+      assertEquals(numDn, miniCluster.getDataNodes().size());
+
+      DatanodeManager dm = miniCluster.getNameNode().getNamesystem().getBlockManager().getDatanodeManager();
+      DatanodeDescriptor maintenanceNode = dm.getDatanode(miniCluster.getDataNodes().get(1).getDatanodeId());
+      maintenanceNode.setInMaintenance();
+      DatanodeDescriptor demissionNode = dm.getDatanode(miniCluster.getDataNodes().get(2).getDatanodeId());
+      demissionNode.setDecommissioned();
+
+      final DFSAdmin dfsAdmin = new DFSAdmin(dfsConf);
+
+      resetStream();
+      final int ret = ToolRunner.run(dfsAdmin, new String[] {"-printTopology"});
+
+      /* collect outputs */
+      final List<String> outs = Lists.newArrayList();
+      scanIntoList(out, outs);
+
+      /* verify results */
+      assertEquals(0, ret);
+      assertThat(outs.get(1),
+              is(allOf(containsString(DatanodeInfo.AdminStates.NORMAL.toString()))));
+      assertThat(outs.get(4),
+              is(allOf(containsString(DatanodeInfo.AdminStates.IN_MAINTENANCE.toString()))));
+      assertThat(outs.get(7),
+              is(allOf(containsString(DatanodeInfo.AdminStates.DECOMMISSIONED.toString()))));
+      assertThat(outs.get(10),
+              is(allOf(containsString(DatanodeInfo.AdminStates.NORMAL.toString()))));
     }
   }
 

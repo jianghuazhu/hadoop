@@ -1652,16 +1652,20 @@ public class DFSAdmin extends FsShell {
       final DatanodeInfo[] report = dfs.getDataNodeStats();
 
       // Build a map of rack -> nodes from the datanode report
-      HashMap<String, TreeSet<String> > tree = new HashMap<String, TreeSet<String>>();
+      HashMap<String, HashMap<String, String> > tree = new HashMap<String, HashMap<String, String>>();
       for(DatanodeInfo dni : report) {
         String location = dni.getNetworkLocation();
         String name = dni.getName();
-        
+        String dnState = dni.getAdminState().toString();
+
         if(!tree.containsKey(location)) {
-          tree.put(location, new TreeSet<String>());
+          tree.put(location, new HashMap<String, String>());
         }
         
-        tree.get(location).add(name);
+        //tree.get(location).add(name);
+        HashMap<String, String> node = tree.get(location);
+        node.put(name, dnState);
+        //node.put("state", dnState);
       }
       
       // Sort the racks (and nodes) alphabetically, display in order
@@ -1670,13 +1674,14 @@ public class DFSAdmin extends FsShell {
       
       for(String r : racks) {
         System.out.println("Rack: " + r);
-        TreeSet<String> nodes = tree.get(r);
+        HashMap<String, String> nodes = tree.get(r);
 
-        for(String n : nodes) {
+        for(String n : nodes.keySet()) {
           System.out.print("   " + n);
           String hostname = NetUtils.getHostNameOfIP(n);
           if(hostname != null)
             System.out.print(" (" + hostname + ")");
+          System.out.print("   " + nodes.get(n));
           System.out.println();
         }
 
