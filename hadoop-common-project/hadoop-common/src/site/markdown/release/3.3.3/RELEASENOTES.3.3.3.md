@@ -34,15 +34,15 @@ In order to resolve build issues with Maven 3.8.1, we have to bump SolrJ to late
 
 log4j 1 was replaced with reload4j which is fork of log4j 1.2.17 with the goal of fixing pressing security issues.
 
-If you are depending on the hadoop artifacts in your build were explicitly excluding log4 artifacts, and now want to exclude the reload4j files, you will need to update your exclusion lists
-\<exclusion\>
-  \<groupId\>org.slf4j\</groupId\>
-  \<artifactId\>slf4j-reload4j\</artifactId\>
-\</exclusion\>
-\<exclusion\>
-  \<groupId\>ch.qos.reload4j\</groupId\>
-  \<artifactId\>reload4j\</artifactId\>
-\</exclusion\>
+If you are depending on the hadoop artifacts in your build were explicitly excluding log4 artifacts, and now want to exclude the reload4j files, you will need to update your exclusion lists<br>
+\<exclusion\><br>
+&nbsp;&nbsp;\<groupId\>org.slf4j\</groupId\><br>
+&nbsp;&nbsp;\<artifactId\>slf4j-reload4j\</artifactId\><br>
+\</exclusion\><br>
+\<exclusion\><br>
+&nbsp;&nbsp;\<groupId\>ch.qos.reload4j\</groupId\><br>
+&nbsp;&nbsp;\<artifactId\>reload4j\</artifactId\><br>
+\</exclusion\><br>
 
 
 
